@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>中1漢字ドリル</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#f0f4ff;
+  --card:#ffffff;
+  --primary:#2563eb;
+  --primary-light:#dbeafe;
+  --primary-dark:#1d4ed8;
+  --success:#16a34a;
+  --success-light:#dcfce7;
+  --danger:#dc2626;
+  --danger-light:#fee2e2;
+  --warn:#d97706;
+  --text:#1e293b;
+  --text-sub:#64748b;
+  --border:#e2e8f0;
+  --radius:16px;
+  --shadow:0 2px 16px rgba(37,99,235,0.10);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;padding-bottom:80px;
+}
+
+/* ===== ヘッダー ===== */
+.header{
+  background:var(--primary);color:#fff;
+  padding:14px 18px 10px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 10px rgba(37,99,235,0.25);
+}
+.header-row{display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-size:17px;font-weight:800;letter-spacing:0.06em;}
+.header-sub{font-size:11px;opacity:0.75;margin-top:2px;}
+.reload-btn{
+  background:rgba(255,255,255,0.2);border:none;color:#fff;
+  padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+.reload-btn:active{background:rgba(255,255,255,0.35);}
+
+/* ===== 画面共通 ===== */
+.screen{display:none;padding:14px;}
+.screen.active{display:block;}
+.section-label{
+  font-size:11px;font-weight:700;color:var(--text-sub);
+  letter-spacing:0.1em;text-transform:uppercase;
+  margin:18px 0 8px;
+}
+
+/* ===== ローディング ===== */
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:16px;
+}
+.spinner{
+  width:40px;height:40px;border:4px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:14px;color:var(--text-sub);}
+
+/* ===== エラー ===== */
+.error-wrap{
+  background:#fff;border-radius:var(--radius);border:2px solid var(--danger);
+  padding:20px;margin:16px 0;
+}
+.error-title{font-size:15px;font-weight:700;color:var(--danger);margin-bottom:6px;}
+.error-body{font-size:13px;color:var(--text-sub);line-height:1.6;}
+
+/* ===== タブ（教科選択） ===== */
+.tab-scroll{
+  display:flex;gap:8px;overflow-x:auto;
+  padding:4px 0 8px;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.tab-scroll::-webkit-scrollbar{display:none;}
+.tab-chip{
+  flex-shrink:0;padding:7px 16px;
+  border-radius:999px;border:2px solid var(--border);
+  background:var(--card);font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;color:var(--text-sub);
+  transition:all 0.15s;
+}
+.tab-chip.active{
+  background:var(--primary);border-color:var(--primary);
+  color:#fff;
+}
+
+/* ===== 単元グリッド ===== */
+.unit-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:8px;margin-bottom:12px;
+}
+.unit-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:14px;padding:10px 6px 8px;
+  text-align:center;cursor:pointer;
+  transition:all 0.15s;position:relative;
+}
+.unit-card.selected{border-color:var(--primary);background:var(--primary-light);}
+.unit-card-num{font-size:14px;font-weight:800;color:var(--primary);}
+.unit-card-cnt{font-size:10px;color:var(--text-sub);margin-top:2px;}
+.unit-card-rate{
+  position:absolute;top:5px;right:6px;
+  font-size:10px;font-weight:700;
+}
+.unit-card-star{font-size:9px;color:var(--warn);}
+
+.select-row{display:flex;gap:8px;margin-bottom:10px;}
+.sel-btn{
+  flex:1;padding:8px;border-radius:10px;
+  font-size:13px;font-weight:600;cursor:pointer;border:none;
+}
+.sel-btn.outline{background:var(--card);border:1.5px solid var(--border);color:var(--text);}
+.sel-btn.fill{background:var(--primary);color:#fff;}
+
+/* ===== モード選択 ===== */
+.mode-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.mode-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:var(--radius);padding:13px 14px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  transition:all 0.15s;
+}
+.mode-card.selected{border-color:var(--primary);background:var(--primary-light);}
+.mode-icon{font-size:24px;flex-shrink:0;}
+.mode-name{font-size:15px;font-weight:700;}
+.mode-desc{font-size:11px;color:var(--text-sub);margin-top:2px;}
+.srs-cnt{
+  display:inline-block;background:var(--danger);color:#fff;
+  font-size:11px;font-weight:700;padding:1px 7px;
+  border-radius:999px;margin-left:6px;
+}
+
+.start-btn{
+  width:100%;padding:16px;background:var(--primary);color:#fff;
+  border:none;border-radius:var(--radius);font-size:17px;font-weight:800;
+  cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.3);
+  transition:background 0.15s;
+}
+.start-btn:active{background:var(--primary-dark);}
+.start-btn:disabled{background:#94a3b8;box-shadow:none;cursor:default;}
+
+/* ===== 学習カード ===== */
+.prog-wrap{background:var(--border);border-radius:999px;height:5px;margin-bottom:4px;}
+.prog-inner{
+  background:linear-gradient(90deg,var(--primary),#60a5fa);
+  height:100%;border-radius:999px;transition:width 0.3s;
+}
+.prog-text{font-size:11px;color:var(--text-sub);text-align:right;margin-bottom:14px;}
+
+.q-card{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px 18px 20px;
+  margin-bottom:14px;
+}
+.q-meta{
+  font-size:11px;color:var(--text-sub);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.master-badge{
+  background:var(--warn);color:#fff;
+  font-size:10px;font-weight:700;padding:2px 7px;
+  border-radius:999px;
+}
+.q-text{
+  font-size:21px;font-weight:700;line-height:1.6;
+  letter-spacing:0.03em;
+}
+.q-blank{
+  color:var(--primary);
+  border-bottom:2.5px solid var(--primary);
+  padding:0 3px;
+}
+.ans-label{font-size:11px;color:var(--text-sub);margin-top:18px;margin-bottom:6px;}
+.ans-box{
+  background:#f1f5f9;border-radius:12px;
+  padding:14px;text-align:center;
+  font-size:28px;font-weight:800;letter-spacing:0.08em;
+  display:none;color:var(--text);
+}
+.ans-hint{font-size:11px;color:var(--text-sub);margin-top:4px;display:none;}
+.show-btn{
+  width:100%;padding:14px;
+  background:var(--primary-light);color:var(--primary);
+  border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;
+}
+.judge-row{display:none;gap:10px;margin-top:10px;}
+.j-btn{
+  flex:1;padding:15px;border:none;border-radius:12px;
+  font-size:16px;font-weight:800;cursor:pointer;
+}
+.j-btn.ok{background:var(--success);color:#fff;}
+.j-btn.ng{background:var(--danger);color:#fff;}
+
+/* ===== 結果画面 ===== */
+.result-hero{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:28px 20px;
+  text-align:center;margin-bottom:14px;
+}
+.result-emoji{font-size:52px;margin-bottom:6px;}
+.result-pct{font-size:42px;font-weight:800;color:var(--primary);}
+.result-label{font-size:13px;color:var(--text-sub);margin-top:2px;}
+.result-nums{display:flex;justify-content:center;gap:28px;margin-top:16px;}
+.rn-item{text-align:center;}
+.rn-val{font-size:22px;font-weight:800;}
+.rn-lab{font-size:11px;color:var(--text-sub);}
+
+.result-list{margin-bottom:14px;}
+.res-row{
+  background:var(--card);border-radius:12px;
+  padding:11px 13px;margin-bottom:5px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 1px 4px rgba(0,0,0,0.05);
+}
+.res-row.ok{border-left:4px solid var(--success);}
+.res-row.ng{border-left:4px solid var(--danger);}
+.res-mark{font-size:16px;}
+.res-q{flex:1;font-size:12px;color:var(--text-sub);}
+.res-a{font-size:15px;font-weight:800;}
+
+.act-row{display:flex;gap:8px;}
+.act-btn{
+  flex:1;padding:14px;border:none;border-radius:var(--radius);
+  font-size:14px;font-weight:700;cursor:pointer;
+}
+.act-btn.primary{background:var(--primary);color:#fff;}
+.act-btn.outline{background:var(--card);border:2px solid var(--border);color:var(--text);}
+
+/* ===== 統計 ===== */
+.stats-item{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:14px 16px;margin-bottom:8px;
+}
+.stats-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.stats-subject{font-size:13px;font-weight:700;color:var(--primary);}
+.stats-unit-name{font-size:13px;font-weight:600;}
+.stats-nums{font-size:11px;color:var(--text-sub);}
+.mini-bar{background:var(--border);border-radius:999px;height:4px;}
+.mini-bar-fill{background:var(--primary);height:100%;border-radius:999px;}
+
+/* ===== ボトムナビ ===== */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;border-top:1px solid var(--border);
+  display:flex;z-index:200;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-btn{
+  flex:1;padding:9px 0 7px;border:none;background:none;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;color:var(--text-sub);font-size:10px;font-weight:600;
+}
+.nav-btn.active{color:var(--primary);}
+.nav-icon{font-size:20px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <div>
+      <h1>📖 中1漢字ドリル</h1>
+      <div class="header-sub" id="headerSub">問題データを読み込み中…</div>
+    </div>
+    <button class="reload-btn" onclick="reloadData()">🔄 更新</button>
+  </div>
+</div>
+
+<!-- ホーム -->
+<div id="screenHome" class="screen active">
+  <div id="homeContent">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">kanji1.xlsx を読み込み中…</div>
+    </div>
+  </div>
+</div>
+
+<!-- 学習 -->
+<div id="screenStudy" class="screen">
+  <div class="prog-wrap"><div class="prog-inner" id="progBar" style="width:0%"></div></div>
+  <div class="prog-text" id="progText">0 / 0</div>
+  <div class="q-card">
+    <div class="q-meta" id="qMeta"></div>
+    <div class="q-text" id="qText"></div>
+    <div class="ans-label">答え</div>
+    <div class="ans-box" id="ansBox"></div>
+    <div class="ans-hint" id="ansHint"></div>
+  </div>
+  <button class="show-btn" id="showBtn" onclick="showAnswer()">答えを見る 👁</button>
+  <div class="judge-row" id="judgeRow">
+    <button class="j-btn ng" onclick="judge(false)">✗ もう一回</button>
+    <button class="j-btn ok" onclick="judge(true)">✓ できた</button>
+  </div>
+</div>
+
+<!-- 結果 -->
+<div id="screenResult" class="screen">
+  <div class="result-hero">
+    <div class="result-emoji" id="resEmoji">🎉</div>
+    <div class="result-pct" id="resPct">-</div>
+    <div class="result-label">正答率</div>
+    <div class="result-nums">
+      <div class="rn-item"><div class="rn-val" id="resOk">-</div><div class="rn-lab">正解</div></div>
+      <div class="rn-item"><div class="rn-val" id="resNg">-</div><div class="rn-lab">不正解</div></div>
+      <div class="rn-item"><div class="rn-val" id="resTotal">-</div><div class="rn-lab">合計</div></div>
+    </div>
+  </div>
+  <div class="result-list" id="resList"></div>
+  <div class="act-row">
+    <button class="act-btn outline" onclick="retryWrong()">間違いだけ復習</button>
+    <button class="act-btn primary" onclick="goHome()">ホームへ</button>
+  </div>
+</div>
+
+<!-- 統計 -->
+<div id="screenStats" class="screen">
+  <div class="section-label">教科・単元別の進捗</div>
+  <div id="statsContent"></div>
+</div>
+
+<!-- ボトムナビ -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="navHome" onclick="showScreen('home')">
+    <span class="nav-icon">🏠</span>ホーム
+  </button>
+  <button class="nav-btn" id="navStats" onclick="showScreen('stats')">
+    <span class="nav-icon">📊</span>統計
+  </button>
+</div>
+
+<!-- SheetJS (CDN不使用→インライン読み込み) -->
+<script>
+// ===== SheetJS をCDNから動的読み込み =====
+// GitHub Pages環境では外部CDNが必要なため例外的に使用
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload = () => init();
+  s.onerror = () => showLoadError('SheetJSライブラリの読み込みに失敗しました。ネット接続を確認してください。');
+  document.head.appendChild(s);
+})();
+
+// ===== 定数 =====
+const XLSX_PATH = 'data/kanji1.xlsx';
+const STORE_KEY = 'kanji_v2';
+const SRS_DAYS = [1, 3, 7, 14, 30];
+const COL = { NO:0, UNIT:1, Q:2, A:3, IMP:4, MEMO:5 }; // 列インデックス（0始まり）
+
+// ===== データ =====
+let subjects = {};   // { sheetName: [ {no,unit,q,a,imp,memo}, ... ] }
+let store = {};      // 学習履歴
+let selectedSubject = '';
+let selectedUnits = new Set();
+let currentMode = 'all';
+let queue = [];
+let qIdx = 0;
+let sessionResults = [];
+
+// ===== ストレージ =====
+function loadStore(){
+  try{ store = JSON.parse(localStorage.getItem(STORE_KEY)||'{}'); }
+  catch(e){ store = {}; }
+}
+function saveStore(){ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+function recKey(subject, no){ return `${subject}__${no}`; }
+function getRec(subject, no){
+  const k = recKey(subject, no);
+  if(!store[k]) store[k] = {correct:0, wrong:0, streak:0, nextReview:0, mastered:false};
+  return store[k];
+}
+
+// ===== SRS =====
+function updateSRS(subject, no, correct){
+  const r = getRec(subject, no);
+  if(correct){
+    r.correct++;
+    r.streak = (r.streak||0) + 1;
+    if(r.streak >= 3) r.mastered = true;
+    const lv = Math.min(r.correct, SRS_DAYS.length - 1);
+    r.nextReview = Date.now() + SRS_DAYS[lv] * 86400000;
+  } else {
+    r.wrong++;
+    r.streak = 0;
+    r.mastered = false;
+    r.nextReview = Date.now() + 86400000;
+  }
+  saveStore();
+}
+function getSRSQueue(){
+  const now = Date.now();
+  const result = [];
+  Object.entries(subjects).forEach(([subj, rows])=>{
+    rows.forEach(row=>{
+      const r = getRec(subj, row.no);
+      if(!r.mastered && r.nextReview > 0 && r.nextReview <= now){
+        result.push({subject:subj, row});
+      }
+    });
+  });
+  return result;
+}
+
+// ===== Excelロード =====
+async function loadXlsx(){
+  const resp = await fetch(XLSX_PATH + '?t=' + Date.now());
+  if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${XLSX_PATH} が見つかりません`);
+  const buf = await resp.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const result = {};
+  wb.SheetNames.forEach(name=>{
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    if(rows.length < 2) return; // ヘッダーのみなら無視
+    // 1行目はヘッダー → スキップ
+    const data = [];
+    for(let i = 1; i < rows.length; i++){
+      const r = rows[i];
+      const no  = r[COL.NO]   || '';
+      const unit = String(r[COL.UNIT] || '').trim();
+      const q   = String(r[COL.Q]    || '').trim();
+      const a   = String(r[COL.A]    || '').trim();
+      const imp = r[COL.IMP]  || '';
+      const memo= String(r[COL.MEMO] || '').trim();
+      if(!q || !a) continue; // 問題・答えが空なら無視
+      data.push({no: String(no), unit, q, a, imp, memo});
+    }
+    if(data.length > 0) result[name] = data;
+  });
+  return result;
+}
+
+// ===== 初期化 =====
+async function init(){
+  loadStore();
+  await reloadData();
+}
+
+async function reloadData(){
+  showHomeLoading('kanji1.xlsx を読み込み中…');
+  try{
+    subjects = await loadXlsx();
+    if(Object.keys(subjects).length === 0){
+      showLoadError('Excelにデータが見つかりません。シートと列構成を確認してください。');
+      return;
+    }
+    selectedSubject = Object.keys(subjects)[0];
+    renderHome();
+    updateHeaderSub();
+  } catch(e){
+    showLoadError(e.message);
+  }
+}
+
+function showHomeLoading(msg){
+  document.getElementById('homeContent').innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">${msg}</div>
+    </div>`;
+}
+function showLoadError(msg){
+  document.getElementById('homeContent').innerHTML = `
+    <div class="error-wrap">
+      <div class="error-title">⚠️ 読み込みエラー</div>
+      <div class="error-body">${msg}<br><br>
+        <b>確認事項：</b><br>
+        ・<code>data/kanji1.xlsx</code> が存在するか<br>
+        ・GitHub PagesにPushされているか<br>
+        ・ローカル環境では簡易サーバー経由で開いてください
+      </div>
+    </div>`;
+}
+
+function updateHeaderSub(){
+  const total = Object.values(subjects).reduce((s,v)=>s+v.length,0);
+  const srsCount = getSRSQueue().length;
+  document.getElementById('headerSub').textContent =
+    `${Object.keys(subjects).length}教科 / ${total}問 | SRS:${srsCount}件`;
+}
+
+// ===== ホーム描画 =====
+function renderHome(){
+  const srsCount = getSRSQueue().length;
+  // 教科タブ
+  const tabHtml = Object.keys(subjects).map(name=>`
+    <div class="tab-chip${name===selectedSubject?' active':''}"
+         onclick="selectSubject('${name}')">${name}</div>
+  `).join('');
+
+  // 単元一覧
+  const unitNames = [...new Set((subjects[selectedSubject]||[]).map(r=>r.unit))];
+
+  const unitCards = unitNames.map(u=>{
+    const rows = (subjects[selectedSubject]||[]).filter(r=>r.unit===u);
+    let ok=0,mastered=0;
+    rows.forEach(r=>{ const rec=getRec(selectedSubject,r.no); if(rec.correct>0)ok++; if(rec.mastered)mastered++; });
+    const rate = rows.length>0 ? Math.round(ok/rows.length*100) : 0;
+    const color = rate>=80?'#16a34a':rate>=50?'#d97706':'#94a3b8';
+    const sel = selectedUnits.has(u);
+    return `
+      <div class="unit-card${sel?' selected':''}" onclick="toggleUnit('${u}',this)">
+        <div class="unit-card-rate" style="color:${color}">${rate>0?rate+'%':''}</div>
+        <div class="unit-card-num" style="font-size:12px">${u}</div>
+        <div class="unit-card-cnt">${rows.length}問</div>
+        <div class="unit-card-star">${mastered>0?'⭐'.repeat(Math.min(mastered,3)):''}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('homeContent').innerHTML = `
+    <div class="section-label">教科</div>
+    <div class="tab-scroll">${tabHtml}</div>
+
+    <div class="section-label">単元を選ぶ</div>
+    <div class="select-row">
+      <button class="sel-btn outline" onclick="selectAll(false)">全解除</button>
+      <button class="sel-btn fill" onclick="selectAll(true)">全選択</button>
+    </div>
+    <div class="unit-grid">${unitCards}</div>
+
+    <div class="section-label">出題モード</div>
+    <div class="mode-list">
+      <div class="mode-card${currentMode==='all'?' selected':''}" onclick="setMode(this,'all')">
+        <div class="mode-icon">📚</div>
+        <div><div class="mode-name">全問</div><div class="mode-desc">選択単元の問題をすべて出題</div></div>
+      </div>
+      <div class="mode-card${currentMode==='random10'?' selected':''}" onclick="setMode(this,'random10')">
+        <div class="mode-icon">🎲</div>
+        <div><div class="mode-name">10問ランダム</div><div class="mode-desc">ランダムに10問を出題</div></div>
+      </div>
+      <div class="mode-card${currentMode==='weak5'?' selected':''}" onclick="setMode(this,'weak5')">
+        <div class="mode-icon">💪</div>
+        <div><div class="mode-name">苦手5問</div><div class="mode-desc">正答率の低い問題を優先出題</div></div>
+      </div>
+      <div class="mode-card${currentMode==='srs'?' selected':''}" onclick="setMode(this,'srs')">
+        <div class="mode-icon">🔄</div>
+        <div><div class="mode-name">今日の復習<span class="srs-cnt">${srsCount}</span></div>
+          <div class="mode-desc">SRS：今日復習すべき問題</div></div>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn" onclick="startStudy()">学習スタート</button>
+  `;
+  updateStartBtn();
+}
+
+function selectSubject(name){
+  selectedSubject = name;
+  selectedUnits.clear();
+  renderHome();
+}
+function toggleUnit(name, el){
+  if(selectedUnits.has(name)){ selectedUnits.delete(name); el.classList.remove('selected'); }
+  else { selectedUnits.add(name); el.classList.add('selected'); }
+  updateStartBtn();
+}
+function selectAll(v){
+  const unitNames = [...new Set((subjects[selectedSubject]||[]).map(r=>r.unit))];
+  if(v) unitNames.forEach(u=>selectedUnits.add(u));
+  else selectedUnits.clear();
+  renderHome();
+}
+function setMode(el, mode){
+  currentMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  updateStartBtn();
+}
+function updateStartBtn(){
+  const btn = document.getElementById('startBtn');
+  if(!btn) return;
+  if(currentMode==='srs'){
+    const c = getSRSQueue().length;
+    btn.disabled = c===0;
+    btn.textContent = c>0 ? `復習スタート（${c}問）` : '復習する問題がありません';
+  } else {
+    btn.disabled = selectedUnits.size===0;
+    btn.textContent = '学習スタート';
+  }
+}
+
+// ===== 学習開始 =====
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function startStudy(){
+  queue = [];
+  if(currentMode==='srs'){
+    getSRSQueue().forEach(item=>{
+      queue.push({subject:item.subject, row:item.row});
+    });
+    shuffle(queue);
+  } else {
+    const pool = [];
+    (subjects[selectedSubject]||[]).forEach(row=>{
+      if(selectedUnits.has(row.unit)) pool.push({subject:selectedSubject, row});
+    });
+    shuffle(pool);
+    if(currentMode==='random10') queue = pool.slice(0,10);
+    else if(currentMode==='weak5'){
+      pool.sort((a,b)=>{
+        const ra=getRec(a.subject,a.row.no), rb=getRec(b.subject,b.row.no);
+        const sa=ra.correct/(ra.correct+ra.wrong+0.001);
+        const sb=rb.correct/(rb.correct+rb.wrong+0.001);
+        return sa-sb;
+      });
+      queue = pool.slice(0,5);
+    } else {
+      queue = pool;
+    }
+  }
+  if(queue.length===0){ alert('出題できる問題がありません'); return; }
+  qIdx=0; sessionResults=[];
+  showScreen('study');
+  renderQ();
+}
+
+// ===== 問題表示 =====
+function renderQ(){
+  const item = queue[qIdx];
+  const {subject, row} = item;
+  const r = getRec(subject, row.no);
+  const total = queue.length;
+
+  document.getElementById('progBar').style.width = (qIdx/total*100)+'%';
+  document.getElementById('progText').textContent = `${qIdx+1} / ${total}`;
+
+  // 問題文のブランクをハイライト（カタカナ・ひらがな連続部分）
+  let qHtml = row.q;
+  // カタカナ・ひらがな・英数字の連続をハイライト候補として抽出
+  const m = row.q.match(/[ァ-ヶー]+|[ぁ-ん]+/);
+  if(m){
+    qHtml = row.q.replace(m[0], `<span class="q-blank">${m[0]}</span>`);
+  }
+
+  const rate = r.correct+r.wrong > 0 ? Math.round(r.correct/(r.correct+r.wrong)*100)+'%' : '未挑戦';
+  const mastBadge = r.mastered ? '<span class="master-badge">⭐マスター</span>' : '';
+  const streakBadge = r.streak>=2 && !r.mastered ? `<span style="font-size:10px;color:var(--warn)">🔥${r.streak}連続</span>` : '';
+
+  document.getElementById('qMeta').innerHTML = `${subject} / ${row.unit}　${rate}${mastBadge}${streakBadge}`;
+  document.getElementById('qText').innerHTML = qHtml;
+  document.getElementById('ansBox').textContent = row.a;
+  document.getElementById('ansBox').style.display = 'none';
+  document.getElementById('ansHint').textContent = row.memo ? `💡 ${row.memo}` : '';
+  document.getElementById('ansHint').style.display = 'none';
+  document.getElementById('showBtn').style.display = 'block';
+  document.getElementById('judgeRow').style.display = 'none';
+}
+
+function showAnswer(){
+  document.getElementById('ansBox').style.display = 'block';
+  if(document.getElementById('ansHint').textContent)
+    document.getElementById('ansHint').style.display = 'block';
+  document.getElementById('showBtn').style.display = 'none';
+  document.getElementById('judgeRow').style.display = 'flex';
+}
+
+function judge(correct){
+  const item = queue[qIdx];
+  updateSRS(item.subject, item.row.no, correct);
+  sessionResults.push({q:item.row.q, a:item.row.a, correct, unit:item.row.unit});
+  qIdx++;
+  if(qIdx >= queue.length) showResult();
+  else renderQ();
+}
+
+// ===== 結果画面 =====
+function showResult(){
+  const ok = sessionResults.filter(r=>r.correct).length;
+  const ng = sessionResults.length - ok;
+  const pct = Math.round(ok/sessionResults.length*100);
+
+  document.getElementById('resEmoji').textContent = pct>=80?'🎉':pct>=50?'💪':'😢';
+  document.getElementById('resPct').textContent = pct+'%';
+  document.getElementById('resOk').textContent = ok;
+  document.getElementById('resNg').textContent = ng;
+  document.getElementById('resTotal').textContent = sessionResults.length;
+
+  const list = document.getElementById('resList');
+  list.innerHTML = sessionResults.map(r=>`
+    <div class="res-row ${r.correct?'ok':'ng'}">
+      <div class="res-mark">${r.correct?'✓':'✗'}</div>
+      <div class="res-q">${r.q}</div>
+      <div class="res-a">${r.a}</div>
+    </div>`).join('');
+
+  showScreen('result');
+  updateHeaderSub();
+}
+
+function retryWrong(){
+  const wrongs = sessionResults.filter(r=>!r.correct).map(r=>r.q);
+  if(!wrongs.length){ alert('間違いはありません！'); return; }
+  queue = queue.filter(item=>wrongs.includes(item.row.q));
+  qIdx=0; sessionResults=[];
+  showScreen('study');
+  renderQ();
+}
+function goHome(){
+  renderHome();
+  showScreen('home');
+}
+
+// ===== 統計 =====
+function renderStats(){
+  const cont = document.getElementById('statsContent');
+  let html = '';
+  Object.entries(subjects).forEach(([subj, rows])=>{
+    html += `<div class="section-label" style="margin-top:16px">${subj}</div>`;
+    const unitNames = [...new Set(rows.map(r=>r.unit))];
+    unitNames.forEach(u=>{
+      const unitRows = rows.filter(r=>r.unit===u);
+      let ok=0,mastered=0,total=unitRows.length;
+      unitRows.forEach(r=>{ const rec=getRec(subj,r.no); if(rec.mastered)mastered++; if(rec.correct>0)ok++; });
+      const pct = total>0?Math.round(mastered/total*100):0;
+      const rate = ok+total>0?Math.round(ok/total*100):0;
+      html += `
+        <div class="stats-item">
+          <div class="stats-header">
+            <div class="stats-unit-name">${u}</div>
+            <div class="stats-nums">⭐${mastered}/${total} 正解率${rate}%</div>
+          </div>
+          <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+    });
+  });
+  cont.innerHTML = html || '<div style="padding:20px;color:var(--text-sub);text-align:center">データなし</div>';
+}
+
+// ===== 画面切替 =====
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+  if(name==='home') document.getElementById('navHome').classList.add('active');
+  if(name==='stats'){
+    document.getElementById('navStats').classList.add('active');
+    renderStats();
+  }
+  const subtitles = {home:'単元を選んで学習しよう', study:'学習中', result:'結果', stats:'学習統計'};
+  // headerSubはreloadData後に更新するので、study/result時のみ上書き
+  if(name==='study'||name==='result') document.getElementById('headerSub').textContent = subtitles[name];
+}
+</script>
+</body>
+</html>
